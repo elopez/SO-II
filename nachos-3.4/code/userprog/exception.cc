@@ -25,6 +25,45 @@
 #include "system.h"
 #include "syscall.h"
 
+void
+readStrFromUsr(int usrAddr, char *outStr)
+{
+    int c;
+
+    do {
+        machine->ReadMem(usrAddr++, 1, &c);
+        *outStr++ = c;
+    } while (c != '\0');
+}
+
+void
+readBuffFromUsr(int usrAddr, char *outBuff, int byteCount)
+{
+    int c, i;
+
+    for (i = 0; i < byteCount; i++) {
+        machine->ReadMem(usrAddr++, 1, &c);
+        *outBuff++ = c;
+    }
+}
+
+void
+writeStrToUsr(char *str, int usrAddr)
+{
+    do {
+        machine->WriteMem(usrAddr++, 1, *str++);
+    } while (*str != '\0');
+}
+
+void
+writeBuffToUsr(char *str, int usrAddr, int byteCount)
+{
+    int i;
+
+    for (i = 0; i < byteCount; i++)
+        machine->WriteMem(usrAddr++, 1, *str++);
+}
+
 //----------------------------------------------------------------------
 // ExceptionHandler
 // 	Entry point into the Nachos kernel.  Called when a user program
