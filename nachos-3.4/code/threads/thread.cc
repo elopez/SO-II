@@ -113,13 +113,14 @@ Thread::Fork(VoidFunctionPtr func, void* arg)
     interrupt->SetLevel(oldLevel);
 }
 
-void
+int
 Thread::Join()
 {
     int n;
 
     ASSERT(joinPort != NULL);
     joinPort->Receive(&n);
+    return n;
 }
 
 //----------------------------------------------------------------------
@@ -162,7 +163,7 @@ Thread::CheckOverflow()
 
 //
 void
-Thread::Finish ()
+Thread::Finish (int exit)
 {
     interrupt->SetLevel(IntOff);
     ASSERT(this == currentThread);
@@ -170,7 +171,7 @@ Thread::Finish ()
     DEBUG('t', "Finishing thread \"%s\"\n", getName());
 
     if (joinPort)
-        joinPort->Send(0);
+        joinPort->Send(exit);
 
     threadToBeDestroyed = currentThread;
     Sleep();					// invokes SWITCH

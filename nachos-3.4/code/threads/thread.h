@@ -91,12 +91,12 @@ class Thread {
     // basic thread operations
 
     void Fork(VoidFunctionPtr func, void* arg);	// Make thread run (*func)(arg)
-    void Join();
+    int Join();
     void Yield();  				// Relinquish the CPU if any
 						// other thread is runnable
     void Sleep();  				// Put the thread to sleep and
 						// relinquish the processor
-    void Finish();  				// The thread is done executing
+    void Finish(int exit = 0);  		// The thread is done executing
 
     void CheckOverflow();   			// Check if thread has
 						// overflowed its stack
