@@ -47,6 +47,7 @@ class Port;
 #ifdef USER_PROGRAM
 #include "machine.h"
 #include "addrspace.h"
+#include "filesys.h"
 #endif
 
 // CPU register state to be saved on context switch.
@@ -58,6 +59,12 @@ const int MachineStateSize = 17;
 // Size of the thread's private execution stack.
 // WATCH OUT IF THIS ISN'T BIG ENOUGH!!!!!
 const int StackSize = 4 * 1024;	// in words
+
+// File descriptor quantity
+#define FD_QTY 10
+
+// File descriptor offset (0 and 1 are consoles)
+#define FD_OFFSET 2
 
 
 // Thread state
@@ -132,9 +139,15 @@ class Thread {
 
     int userRegisters[NumTotalRegs];	// user-level CPU register state
 
+    OpenFile *fdtable[FD_QTY];		// file descriptor table
+
   public:
     void SaveUserState();		// save user-level register state
     void RestoreUserState();		// restore user-level register state
+
+    int AddFile(OpenFile *f);		// adds file to fd table
+    OpenFile *GetFile(int fd);		// fetches file from fd table
+    OpenFile *RemoveFile(int fd);	// removes file from fd table
 
     AddrSpace *space;			// User code this thread is running.
 #endif

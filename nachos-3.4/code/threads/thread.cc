@@ -49,6 +49,7 @@ Thread::Thread(const char* threadName, int isJoinable)
 
 #ifdef USER_PROGRAM
     space = NULL;
+    memset(fdtable, 0, sizeof(fdtable));
 #endif
 }
 
@@ -308,6 +309,7 @@ Thread::StackAllocate (VoidFunctionPtr func, void* arg)
 
 #ifdef USER_PROGRAM
 #include "machine.h"
+#include "filesys.h"
 
 //----------------------------------------------------------------------
 // Thread::SaveUserState
@@ -340,4 +342,40 @@ Thread::RestoreUserState()
     for (int i = 0; i < NumTotalRegs; i++)
 	machine->WriteRegister(i, userRegisters[i]);
 }
+
+int
+Thread::AddFile(OpenFile *f)
+{
+	/* fd 0 and 1 correspond to the console */
+	for (int i = 0; i < FD_QTY; i++) {
+		if (fdtable[i] == NULL) {
+			fdtable[i] = f;
+			return i+FD_OFFSET;
+		}
+	}
+
+	ASSERT(0);
+	return -1;
+}
+
+OpenFile *
+Thread::GetFile(int fd)
+{
+	if (fd < FD_OFFSET || fd >= FD_QTY+FD_OFFSET)
+		return NULL;
+
+	return fdtable[fd-FD_OFFSET];
+}
+
+OpenFile *
+Thread::RemoveFile(int fd)
+{
+	if (fd < FD_OFFSET || fd >= FD_QTY+FD_OFFSET)
+		return NULL;
+
+	OpenFile *f = fdtable[fd-FD_OFFSET];
+	fdtable[fd-FD_OFFSET] = NULL;
+	return f;
+}
+
 #endif
