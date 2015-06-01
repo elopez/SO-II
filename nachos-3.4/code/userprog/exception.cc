@@ -158,13 +158,21 @@ handleSyscall(int type)
     }
     case SC_Read: {
         OpenFile *f = currentThread->GetFile(arg3);
-        if (!f) {
+        if (!f && arg3 != ConsoleInput) {
             DEBUG('c', "Error opening file %d for reading\n", arg3);
             break;
         }
+
+        // Read a buffer of at most arg2 bytes from the right place
         char *buf = new char[arg2];
-        result = f->Read(buf, arg2);
+        if (arg3 == ConsoleInput)
+            result = synchConsole->GetBuffer(buf, arg2);
+        else
+            result = f->Read(buf, arg2);
+
+        // Push it to userspace
         writeBuffToUsr(buf, arg1, result);
+
         delete[] buf;
         DEBUG('c', "Read %d bytes (wanted %d) from file with fd %d\n",
               result, arg2, arg3);
@@ -172,13 +180,21 @@ handleSyscall(int type)
     }
     case SC_Write: {
 		OpenFile *f = currentThread->GetFile(arg3);
-        if (!f) {
+        if (!f && arg3 != ConsoleOutput) {
             DEBUG('c', "Error opening file %d for writing\n", arg3);
             break;
         }
+
+        // Fetch buffer fron userspace
         char *buf = new char[arg2];
         readBuffFromUsr(arg1, buf, arg2);
-        result = f->Write(buf, arg2);
+
+        // Write to the correct place
+        if (arg3 == ConsoleOutput)
+            result = synchConsole->PutBuffer(buf, arg2);
+        else
+            result = f->Write(buf, arg2);
+
         delete[] buf;
         DEBUG('c', "Wrote %d bytes (wanted %d) from file with fd %d\n",
               result, arg2, arg3);
