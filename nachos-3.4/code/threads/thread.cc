@@ -48,6 +48,14 @@ Thread::Thread(const char* threadName, int isJoinable)
         joinPort = NULL;
 
 #ifdef USER_PROGRAM
+    // The main thread is created very early and the process table will
+    // not be set up by then
+    if (processTable) {
+        pid = processTable->AllocateId(this);
+        ASSERT(pid != -1);
+    } else {
+        pid = -1;
+    }
     space = NULL;
     memset(fdtable, 0, sizeof(fdtable));
 #endif
@@ -72,6 +80,13 @@ Thread::~Thread()
     ASSERT(this != currentThread);
     if (stack != NULL)
 	DeallocBoundedArray((char *) stack, StackSize * sizeof(HostMemoryAddress));
+
+#ifdef USER_PROGRAM
+    if (space != NULL)
+        delete space;
+
+    processTable->DeleteProcess(pid);
+#endif
 }
 
 //----------------------------------------------------------------------

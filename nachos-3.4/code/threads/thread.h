@@ -150,6 +150,7 @@ class Thread {
     OpenFile *RemoveFile(int fd);	// removes file from fd table
 
     AddrSpace *space;			// User code this thread is running.
+    int pid;
 #endif
 };
 

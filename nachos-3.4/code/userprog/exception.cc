@@ -109,30 +109,37 @@ handleSyscall(int type)
         break;
     }
     case SC_Exit: {
+        DEBUG('c', "Exiting thread %d with value %d\n",
+              currentThread->pid, arg1);
         currentThread->Finish(arg1);
-        DEBUG('c', "Exiting thread with value %d\n", arg1);
         break;
     }
     case SC_Exec: {
         char *name = new char[1024];
-        readStrFromUsr(arg2, name);
+        readStrFromUsr(arg1, name);
         OpenFile *f = fileSystem->Open(name);
         if (!f) {
             DEBUG('c', "Problem opening file %s for execution\n", name);
             delete[] name;
+            result = -1;
             break;
         }
-        AddrSpace *s = new AddrSpace(f);
-        Thread *t = new Thread(name, 1);
-        t->space = s;
-        t->Fork(startProcess, NULL);
+        AddrSpace *space = new AddrSpace(f);
+        Thread *thread = new Thread(name, 1);
+        thread->space = space;
+        thread->Fork(startProcess, NULL);
         delete f;
 
-        int pid = 999; //TODO
-        result = pid;
+        result = thread->pid;
+
         break;
     }
     case SC_Join: {
+        Thread *thread = processTable->GetProcess(arg1);
+        if (!thread)
+            result = -1;
+        else
+            result = thread->Join();
         break;
     }
     case SC_Create: {
@@ -179,7 +186,7 @@ handleSyscall(int type)
         break;
     }
     case SC_Write: {
-		OpenFile *f = currentThread->GetFile(arg3);
+        OpenFile *f = currentThread->GetFile(arg3);
         if (!f && arg3 != ConsoleOutput) {
             DEBUG('c', "Error opening file %d for writing\n", arg3);
             break;
