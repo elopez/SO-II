@@ -34,7 +34,7 @@ CPP = $(GCCDIR)cpp
 INCDIR =-I../userprog -I../threads
 CFLAGS = -G 0 -c $(INCDIR) -mips1
 
-all: lib/gcc-lib halt shell matmult sort filetest printargs
+all: lib/gcc-lib halt shell matmult sort filetest printargs busy
 
 lib/gcc-lib:
 	ln -s `pwd`/mips-dec-ultrix42/ lib/gcc-lib
