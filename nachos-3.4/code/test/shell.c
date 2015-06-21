@@ -1,5 +1,24 @@
 #include "syscall.h"
 
+#define NULL ((void*)0)
+
+void bufferToArgv(char *buf, char *argv[])
+{
+    int i = 0;
+
+    while (*buf != '\0') {
+        argv[i++] = buf;
+        while(*buf != ' ' && *buf != '\0')
+            buf++;
+        if (*buf == '\0') {
+            argv[i] = NULL;
+            break;
+        } else {
+            *buf++ = '\0';
+        }
+    }
+}
+
 int
 main()
 {
@@ -7,6 +26,7 @@ main()
     OpenFileId input = ConsoleInput;
     OpenFileId output = ConsoleOutput;
     char prompt[2], ch, buffer[60];
+    char *argv[10];
     int i;
 
     prompt[0] = '-';
@@ -27,7 +47,8 @@ main()
 	buffer[--i] = '\0';
 
 	if( i > 0 ) {
-		newProc = Exec(buffer);
+		bufferToArgv(buffer, argv);
+		newProc = Exec(buffer, argv);
 		Join(newProc);
 	}
     }
