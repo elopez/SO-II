@@ -47,9 +47,14 @@ main()
 	buffer[--i] = '\0';
 
 	if( i > 0 ) {
-		bufferToArgv(buffer, argv);
-		newProc = Exec(buffer, argv);
-		Join(newProc);
+		if (*buffer == '&') {
+			bufferToArgv(buffer+1, argv);
+			Exec(buffer+1, argv);
+		} else {
+			bufferToArgv(buffer, argv);
+			newProc = Exec(buffer, argv);
+			Join(newProc);
+		}
 	}
     }
 }
