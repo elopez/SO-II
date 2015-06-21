@@ -20,13 +20,15 @@
 
 class AddrSpace {
   public:
-    AddrSpace(OpenFile *executable);	// Create an address space,
+    AddrSpace(OpenFile *executable, char **args = NULL);	// Create an address space,
 					// initializing it with the program
 					// stored in the file "executable"
     ~AddrSpace();			// De-allocate an address space
 
     void InitRegisters();		// Initialize user-level CPU registers,
 					// before jumping to user code
+    void SetArguments();		// Push arguments to thread stack and
+					// reconfigure registers accordingly
 
     void SaveState();			// Save/restore address space-specific
     void RestoreState();		// info on a context switch
@@ -36,6 +38,8 @@ class AddrSpace {
 					// for now!
     unsigned int numPages;		// Number of pages in the virtual
 					// address space
+    char **args;			// Arguments for the new process, to be
+					// allocated in the fresh stack
 };
 
 #endif // ADDRSPACE_H

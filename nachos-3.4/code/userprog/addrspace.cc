@@ -57,10 +57,12 @@ SwapHeader (NoffHeader *noffH)
 //	"executable" is the file containing the object code to load into memory
 //----------------------------------------------------------------------
 
-AddrSpace::AddrSpace(OpenFile *executable)
+AddrSpace::AddrSpace(OpenFile *executable, char **argv)
 {
     NoffHeader noffH;
     unsigned int i, size;
+
+    args = argv;
 
     executable->ReadAt((char *)&noffH, sizeof(noffH), 0);
     if ((noffH.noffMagic != NOFFMAGIC) &&
@@ -175,6 +177,53 @@ AddrSpace::InitRegisters()
    // accidentally reference off the end!
     machine->WriteRegister(StackReg, numPages * PageSize - 16);
     DEBUG('a', "Initializing stack register to %d\n", numPages * PageSize - 16);
+}
+
+static int
+pushStrToStack(int sp, char *str)
+{
+    do {
+        machine->WriteMem(sp++, 1, *str);
+    } while (*str++ != '\0');
+
+    return sp;
+}
+
+void
+AddrSpace::SetArguments()
+{
+    int sp = machine->ReadRegister(StackReg);
+    int argc = 0, argsize = 0;
+    int uargbase, uargv;
+
+    // Compute how much space are the arguments going to take
+    for (int i = 0; args[i] != NULL; i++) {
+        argc++;
+        argsize += strlen(args[i]) + 1;
+    }
+
+    // Calculate addresses, while keeping alignment
+    uargbase = (sp - argsize) & ~3;
+    uargv = uargbase - (argc + 1) * sizeof(int);
+    sp = uargv - 16; // MIPS ABI, space for register pushes
+
+    // Configure main(...) arguments and new stack pointer
+    machine->WriteRegister(4, argc);
+    machine->WriteRegister(5, uargv);
+    machine->WriteRegister(StackReg, sp);
+
+    // Push the arguments and their addresses into the stack
+    for (int i = 0; i < argc; i++) {
+        machine->WriteMem(uargv, 4, uargbase);
+        uargv += 4;
+        uargbase = pushStrToStack(uargbase, args[i]);
+    }
+    machine->WriteMem(uargv, 4, 0);
+
+    // Free now useless arguments
+    for (int i = 0; args[i] != NULL; i++)
+        delete[] args[i];
+    delete[] args;
 }
 
 //----------------------------------------------------------------------

@@ -77,11 +77,41 @@ incrementPCRegs()
     machine->WriteRegister(NextPCReg, pc + 4);
 }
 
+#define MAX_ARGS	10
+#define MAX_ARG_LEN	128
+
+char **
+readArgvFromUsr(int uargvp)
+{
+    int uargv[MAX_ARGS+1], count = 0;
+    char **argv;
+
+    // Count the arguments and collect their userspace addresses for later
+    for (int i = 0; i < MAX_ARGS; i++) {
+        machine->ReadMem(uargvp + 4 * i, 4, &uargv[i]);
+        if (uargv[i])
+            count++;
+        else
+            break;
+    }
+
+    // Read all the arguments into a new array in kernel memory
+    argv = new char*[count+1]();
+    argv[count] = NULL;
+    for (int i = 0; i < count; i++) {
+        argv[i] = new char[MAX_ARG_LEN]();
+        readStrFromUsr(uargv[i], argv[i]);
+    }
+
+    return argv;
+}
+
 void
 startProcess(void *n)
 {
     currentThread->space->InitRegisters();
     currentThread->space->RestoreState();
+    currentThread->space->SetArguments();
 
     machine->Run();
     ASSERT(false);
@@ -124,7 +154,7 @@ handleSyscall(int type)
             result = -1;
             break;
         }
-        AddrSpace *space = new AddrSpace(f);
+        AddrSpace *space = new AddrSpace(f, readArgvFromUsr(arg2));
         Thread *thread = new Thread(name, 1);
         thread->space = space;
         thread->Fork(startProcess, NULL);
