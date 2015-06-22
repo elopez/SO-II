@@ -1,14 +1,5 @@
 #include "syscall.h"
-
-int strlen(char *str)
-{
-	int count = 0;
-	while (*str++ != '\0')
-		count++;
-	return count;
-}
-
-#define puts(x) Write((x), strlen((x)), ConsoleOutput)
+#include "minilib.h"
 
 int main(int argc, char *argv[])
 {

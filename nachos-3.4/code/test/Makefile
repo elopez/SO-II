@@ -10,6 +10,8 @@
 # 	to ld, in order for the routine "Start" to be loaded at location 0
 #
 
+.PHONY: clean all
+
 # if you are cross-compiling, you need to point to the right executables
 # and change the flags to ld and the build procedure for as
 #GCCDIR = ~/gnu/local/decstation-ultrix/bin/
@@ -34,7 +36,9 @@ CPP = $(GCCDIR)cpp
 INCDIR =-I../userprog -I../threads
 CFLAGS = -G 0 -c $(INCDIR) -mips1
 
-all: lib/gcc-lib halt shell matmult sort filetest printargs busy
+BINS = halt shell matmult sort filetest printargs busy
+
+all: lib/gcc-lib $(BINS)
 
 lib/gcc-lib:
 	ln -s `pwd`/mips-dec-ultrix42/ lib/gcc-lib
@@ -44,46 +48,24 @@ start.o: start.s ../userprog/syscall.h
 	$(AS) $(ASFLAGS) -o start.o strt.s
 	rm strt.s
 
-halt.o: halt.c
-	$(CC) $(CFLAGS) -c halt.c
-halt: halt.o start.o
-	$(LD) $(LDFLAGS) start.o halt.o -o halt.coff
-	../bin/coff2noff halt.coff halt
-
-shell.o: shell.c
-	$(CC) $(CFLAGS) -c shell.c
-shell: shell.o start.o
-	$(LD) $(LDFLAGS) start.o shell.o -o shell.coff
-	../bin/coff2noff shell.coff shell
-
-sort.o: sort.c
-	$(CC) $(CFLAGS) -c sort.c
-sort: sort.o start.o
-	$(LD) $(LDFLAGS) start.o sort.o -o sort.coff
-	../bin/coff2noff sort.coff sort
-
-matmult.o: matmult.c
-	$(CC) $(CFLAGS) -c matmult.c
-matmult: matmult.o start.o
-	$(LD) $(LDFLAGS) start.o matmult.o -o matmult.coff
-	../bin/coff2noff matmult.coff matmult
-
-
-filetest.o: filetest.c
-	$(CC) $(CFLAGS) -c filetest.c
-filetest: filetest.o start.o
-	$(LD) $(LDFLAGS) start.o filetest.o -o filetest.coff
-	../bin/coff2noff filetest.coff filetest
-
 # Estas reglas sirven para compilar programas simples,
-# que consistan en un único fuente.
+# que consistan en un Ãºnico fuente.
 # Las reglas anteriores para construir los ejecutables
-# halt, shell, sort y filetest se podrían suprimir
+# halt, shell, sort y filetest se podrÃ­an suprimir
 
+# Override a la regla builtin de make
 %: %.c
-	make start.o
-	$(CC) $(CFLAGS) -c $<
-	$(LD) $(LDFLAGS) start.o $*.o -o $*.coff
-	../bin/coff2noff $*.coff $@
 
+# make provee una regla .c -> .o
 
+# .o -> COFF
+%.coff: start.o %.o minilib.o
+	$(LD) $(LDFLAGS) $^ -o $@
+
+# COFF -> NOFF
+%: %.coff
+	../bin/coff2noff $< $@
+
+# Regla para limpiar
+clean:
+	rm -f $(BINS) *.o *.coff
