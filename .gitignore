@@ -89,6 +89,8 @@ nachos-3.4/code/test/shell
 nachos-3.4/code/test/sort
 nachos-3.4/code/test/printargs
 nachos-3.4/code/test/busy
+nachos-3.4/code/test/cp
+nachos-3.4/code/test/cat
 nachos-3.4/code/bin/coff2noff
 *.coff
 nachos
