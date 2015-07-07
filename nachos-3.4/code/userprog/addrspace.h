@@ -33,6 +33,8 @@ class AddrSpace {
     void SaveState();			// Save/restore address space-specific
     void RestoreState();		// info on a context switch
 
+    bool LoadPageToTLB(unsigned int vpage);
+
   private:
     TranslationEntry *pageTable;	// Assume linear page table translation
 					// for now!
@@ -40,6 +42,7 @@ class AddrSpace {
 					// address space
     char **args;			// Arguments for the new process, to be
 					// allocated in the fresh stack
+    int nextTLBIndex;
 };
 
 #endif // ADDRSPACE_H

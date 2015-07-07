@@ -248,6 +248,26 @@ void AddrSpace::SaveState()
 
 void AddrSpace::RestoreState()
 {
+    #ifdef USE_TLB
+    // Invalidate the TLB
+    for (int i = 0; i < TLBSize; i++)
+        machine->tlb[i].valid = false;
+    // Start loading from scratch
+    nextTLBIndex = 0;
+    #else
     machine->pageTable = pageTable;
     machine->pageTableSize = numPages;
+    #endif
+}
+
+bool
+AddrSpace::LoadPageToTLB(unsigned int vpage)
+{
+    if (vpage >= numPages)
+        return false;
+
+    machine->tlb[nextTLBIndex++] = pageTable[vpage];
+    nextTLBIndex %= TLBSize;
+
+    return true;
 }

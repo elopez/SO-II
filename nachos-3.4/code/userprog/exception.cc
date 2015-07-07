@@ -262,6 +262,24 @@ handleSyscall(int type)
     machine->WriteRegister(CODE_REG, result);
 }
 
+void
+handlePageFault()
+{
+    int vaddr = machine->ReadRegister(BadVAddrReg);
+    int vpage = vaddr / PageSize;
+    if (!currentThread->space->LoadPageToTLB(vpage)) {
+        DEBUG('a', "Failure loading vpage %d to the TLB\n", vpage);
+        currentThread->Finish();
+    }
+}
+
+void
+handleReadOnlyException()
+{
+    DEBUG('a', "Attempting to write to a read-only page! Dying!\n");
+    currentThread->Finish();
+}
+
 //----------------------------------------------------------------------
 // ExceptionHandler
 // 	Entry point into the Nachos kernel.  Called when a user program
@@ -290,9 +308,17 @@ ExceptionHandler(ExceptionType which)
 {
     int code = machine->ReadRegister(CODE_REG);
 
-    if (which == SyscallException) {
+    switch (which) {
+    case SyscallException:
         handleSyscall(code);
-    } else {
+        break;
+    case PageFaultException:
+        handlePageFault();
+        break;
+    case ReadOnlyException:
+        handleReadOnlyException();
+        break;
+    default:
         printf("Unexpected user mode exception %d %d\n", which, code);
         ASSERT(false);
     }
