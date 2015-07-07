@@ -18,6 +18,7 @@
 #include "copyright.h"
 #include "system.h"
 #include "addrspace.h"
+#include "memaccess.h"
 #include "noff.h"
 
 //----------------------------------------------------------------------
@@ -183,7 +184,7 @@ static int
 pushStrToStack(int sp, char *str)
 {
     do {
-        machine->WriteMem(sp++, 1, *str);
+        writeMem(sp++, 1, *str);
     } while (*str++ != '\0');
 
     return sp;
@@ -214,11 +215,11 @@ AddrSpace::SetArguments()
 
     // Push the arguments and their addresses into the stack
     for (int i = 0; i < argc; i++) {
-        machine->WriteMem(uargv, 4, uargbase);
+        writeMem(uargv, 4, uargbase);
         uargv += 4;
         uargbase = pushStrToStack(uargbase, args[i]);
     }
-    machine->WriteMem(uargv, 4, 0);
+    writeMem(uargv, 4, 0);
 
     // Free now useless arguments
     for (int i = 0; args[i] != NULL; i++)

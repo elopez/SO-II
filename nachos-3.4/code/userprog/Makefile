@@ -10,10 +10,10 @@
 # of liability and disclaimer of warranty provisions.
 
 DEFINES = -DUSER_PROGRAM -DFILESYS_NEEDED -DFILESYS_STUB  -DDFS_TICKS_FIX -DMP_TIMESLICING
-INCPATH = -I../bin -I../filesys -I../userprog -I../threads -I../machine
-HFILES = $(THREAD_H) $(USERPROG_H)
-CFILES = $(THREAD_C) $(USERPROG_C)
-C_OFILES = $(THREAD_O) $(USERPROG_O)
+INCPATH = -I../bin -I../filesys -I../userprog -I../threads -I../machine -I../vm
+HFILES = $(THREAD_H) $(USERPROG_H) $(VM_H)
+CFILES = $(THREAD_C) $(USERPROG_C) $(VM_C)
+C_OFILES = $(THREAD_O) $(USERPROG_O) $(VM_O)
 
 # if file sys done first!
 # DEFINES = -DUSER_PROGRAM -DFILESYS_NEEDED -DFILESYS

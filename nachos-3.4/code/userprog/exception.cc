@@ -25,6 +25,7 @@
 #include "system.h"
 #include "syscall.h"
 #include "filesys.h"
+#include "memaccess.h"
 
 void
 readStrFromUsr(int usrAddr, char *outStr)
@@ -32,7 +33,7 @@ readStrFromUsr(int usrAddr, char *outStr)
     int c;
 
     do {
-        machine->ReadMem(usrAddr++, 1, &c);
+        readMem(usrAddr++, 1, &c);
         *outStr++ = c;
     } while (c != '\0');
 }
@@ -43,7 +44,7 @@ readBuffFromUsr(int usrAddr, char *outBuff, int byteCount)
     int c, i;
 
     for (i = 0; i < byteCount; i++) {
-        machine->ReadMem(usrAddr++, 1, &c);
+        readMem(usrAddr++, 1, &c);
         *outBuff++ = c;
     }
 }
@@ -52,7 +53,7 @@ void
 writeStrToUsr(char *str, int usrAddr)
 {
     do {
-        machine->WriteMem(usrAddr++, 1, *str++);
+        writeMem(usrAddr++, 1, *str++);
     } while (*str != '\0');
 }
 
@@ -62,7 +63,7 @@ writeBuffToUsr(char *str, int usrAddr, int byteCount)
     int i;
 
     for (i = 0; i < byteCount; i++)
-        machine->WriteMem(usrAddr++, 1, *str++);
+        writeMem(usrAddr++, 1, *str++);
 }
 
 void
@@ -88,7 +89,7 @@ readArgvFromUsr(int uargvp)
 
     // Count the arguments and collect their userspace addresses for later
     for (int i = 0; i < MAX_ARGS; i++) {
-        machine->ReadMem(uargvp + 4 * i, 4, &uargv[i]);
+        readMem(uargvp + 4 * i, 4, &uargv[i]);
         if (uargv[i])
             count++;
         else
