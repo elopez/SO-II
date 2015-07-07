@@ -28,7 +28,7 @@ typedef int NetworkAddress;
 //	packet header (PacketHeader)
 //	data (containing MailHeader from the PostOffice!)
 
-class PacketHeader {
+struct PacketHeader {
   public:
     NetworkAddress to;		// Destination machine ID
     NetworkAddress from;	// source machine ID
