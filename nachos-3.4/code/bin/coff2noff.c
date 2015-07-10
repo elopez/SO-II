@@ -114,7 +114,7 @@ int main (int argc, char **argv)
 
 /* open the NOFF file (output) */
     fdOut = open(argv[2], O_WRONLY|O_CREAT|O_TRUNC , 0666);
-    if (fdIn == -1) {
+    if (fdOut == -1) {
 	perror(argv[2]);
 	exit(1);
     }
