@@ -373,7 +373,7 @@ Machine::OneInstruction(Instruction *instr)
 	break;
 
       case OP_OR:
-	registers[(int)instr->rd] = registers[(int)instr->rs] | registers[(int)instr->rs];
+	registers[(int)instr->rd] = registers[(int)instr->rs] | registers[(int)instr->rt];
 	break;
 
       case OP_ORI:
