@@ -39,6 +39,9 @@ class Statistics {
     unsigned long long numBugFix;    // Number of times the ticks bug get fixed.
 #endif
 
+    unsigned long long numTLBHits;
+    unsigned long long numTLBMisses;
+
     Statistics(); 		// initialize everything to zero
 
     void Print();		// print collected statistics

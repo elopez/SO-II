@@ -22,6 +22,7 @@ Statistics::Statistics()
     numDiskReads = numDiskWrites = 0;
     numConsoleCharsRead = numConsoleCharsWritten = 0;
     numPageFaults = numPacketsSent = numPacketsRecvd = 0;
+    numTLBHits = numTLBMisses = 0;
 #ifdef DFS_TICKS_FIX
     numBugFix = 0;
 #endif
@@ -49,4 +50,12 @@ Statistics::Print()
     printf("Paging: faults %d\n", numPageFaults);
     printf("Network I/O: packets received %d, sent %d\n", numPacketsRecvd,
 	numPacketsSent);
+
+#ifdef USE_TLB
+    unsigned long long total = numTLBHits + numTLBMisses;
+    double hitspct = (100.0 * numTLBHits) / total;
+    double misspct = (100.0 * numTLBMisses) / total;
+    printf("TLB Hits: %llu (%.2f%%)\n", numTLBHits, hitspct);
+    printf("TLB Misses: %llu (%.2f%%)\n", numTLBMisses, misspct);
+#endif
 }
