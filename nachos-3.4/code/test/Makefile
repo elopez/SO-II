@@ -36,7 +36,7 @@ CPP = $(GCCDIR)cpp
 INCDIR =-I../userprog -I../threads
 CFLAGS = -G 0 -c $(INCDIR) -mips1
 
-BINS = halt shell matmult sort filetest printargs busy cp cat
+BINS = halt shell matmult sort filetest printargs busy cp cat ortest
 
 all: lib/gcc-lib $(BINS)
 
