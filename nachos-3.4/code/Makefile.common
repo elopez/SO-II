@@ -103,9 +103,11 @@ USERPROG_C = ../userprog/addrspace.cc\
 USERPROG_O = addrspace.o bitmap.o exception.o progtest.o console.o machine.o \
 	mipssim.o translate.o synchconsole.o processtable.o
 
-VM_H = ../vm/memaccess.h
-VM_C = ../vm/memaccess.cc
-VM_O = memaccess.o
+VM_H = ../vm/memaccess.h\
+	../vm/coremap.h
+VM_C = ../vm/memaccess.cc\
+	../vm/coremap.cc
+VM_O = memaccess.o coremap.o
 
 FILESYS_H =../filesys/directory.h \
 	../filesys/filehdr.h\

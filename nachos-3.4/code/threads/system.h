@@ -40,6 +40,11 @@ extern SynchConsole *synchConsole;
 extern ProcessTable *processTable;
 #endif
 
+#ifdef VM
+#include "coremap.h"
+extern CoreMap *coreMap;
+#endif
+
 #ifdef FILESYS_NEEDED 		// FILESYS or FILESYS_STUB
 #include "filesys.h"
 extern FileSystem  *fileSystem;

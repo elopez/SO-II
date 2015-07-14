@@ -39,6 +39,10 @@ SynchConsole *synchConsole;
 ProcessTable *processTable;
 #endif
 
+#ifdef VM
+CoreMap *coreMap;
+#endif
+
 #ifdef NETWORK
 PostOffice *postOffice;
 #endif
@@ -188,6 +192,10 @@ Initialize(int argc, char **argv)
     processTable = new ProcessTable();
 #endif
 
+#ifdef VM
+    coreMap = new CoreMap();
+#endif
+
 #ifdef FILESYS
     synchDisk = new SynchDisk("DISK");
 #endif
@@ -216,6 +224,10 @@ Cleanup()
 
 #ifdef NETWORK
     delete postOffice;
+#endif
+
+#ifdef VM
+    delete coreMap;
 #endif
 
 #ifdef USER_PROGRAM
