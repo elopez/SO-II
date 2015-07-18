@@ -1,0 +1,41 @@
+2 - Calcular hit ratio para algunos programas grandes. ¿Qué tamaño
+    sugeriría para la TLB?
+
+Para calcular el hit ratio, necesitamos contar los hits y misses
+durante la traducción de direcciones en la máquina simulada de Nachos.
+Decimos que un hit ocurre cada vez que se realiza una traducción con
+éxito, y que un miss ocurre en el caso contrario, es decir, cuando
+el procesador recibe una PageFaultException.
+
+Luego, podemos calcular el hit ratio mediante la siguiente fórmula:
+
+  Hit Ratio (%) = 100 * (núm hits / (núm hits + núm misses))
+
+La tabla siguiente contiene la cantidad de hits y misses observados con
+distintos programas:
+  * test/sort: Ordena un arreglo de 1024 enteros
+  * test/matmult: Multiplica matrices de 20x20 enteros
+  * test/tlbstress: Rellena un arreglo con distintos valores y verifica
+    que los valores no se modifiquen, leyéndolos en un orden aleatorio.
+
+| TLBSize | Hits sort           | Misses sort       | Hits matmult     | Misses matmult  | Hits tlbstress      | Misses tlbstress   |
+| ------- | ------------------- | ----------------- | ---------------- | --------------- | ------------------- | ------------------ |
+| 2       | 24198147 (85.14%)   | 4222976 (14.86%)  | 773413 (89.56%)  | 90182 (10.44%)  | 70687000 (82.14%)   | 15366190 (17.86%)  |
+| 4       | 22350674 (94.42%)   | 1321345 (5.58%)   | 759891 (92.38%)  | 62638 (7.62%)   | 66920516 (89.92%)   | 7500652 (10.08%)   |
+| 8       | 21827825 (99.93%)   | 16319 (0.07%)     | 736804 (97.88%)  | 15977 (2.12%)   | 65103287 (95.80%)   | 2857276 (4.20%)    |
+| 16      | 21825714 (99.95%)   | 10571 (0.05%)     | 733002 (98.87%)  | 8346 (1.13%)    | 64340587 (98.35%)   | 1078432 (1.65%)    |
+| 32      | 21820281 (99.98%)   | 3330 (0.02%)      | 726249 (99.98%)  | 112 (0.02%)     | 63719822 (99.64%)   | 232049 (0.36%)     |
+| 64      | 21817382 (100.00%)  | 40 (0.00%)        | 726195 (99.99%)  | 48 (0.01%)      | 63515939 (100.00%)  | 43 (0.00%)         |
+| 128     | 21817382 (100.00%)  | 40 (0.00%)        | 726195 (99.99%)  | 48 (0.01%)      | 63515939 (100.00%)  | 43 (0.00%)         |
+
+Se puede observar que la cantidad de misses cuando la TLB tiene más
+entradas que las páginas del programa es muy baja, ya que una vez que
+todas las páginas son cargadas, no ocurren más misses. Cuando la TLB
+es más pequeña que el programa, se deben reemplazar entradas y la
+cantidad de misses aumenta.
+
+Podemos observar que para los programas probados, podemos obtener >95%
+de hit ratio con un TLB de sólo 8 entradas, y >99% con uno de 32
+entradas. Considerando que un TLB más grande puede incurrir en un costo
+monetario considerable, se puede decir que un TLB de 32 entradas como en
+el MIPS R2000 sería una opción acertada para programas de este tamaño.
