@@ -155,9 +155,8 @@ handleSyscall(int type)
             result = -1;
             break;
         }
-        AddrSpace *space = new AddrSpace(f, readArgvFromUsr(arg2));
         Thread *thread = new Thread(name, 1);
-        thread->space = space;
+        new AddrSpace(f, readArgvFromUsr(arg2), thread);
         thread->Fork(startProcess, NULL);
         delete f;
 

@@ -58,12 +58,20 @@ SwapHeader (NoffHeader *noffH)
 //	"executable" is the file containing the object code to load into memory
 //----------------------------------------------------------------------
 
-AddrSpace::AddrSpace(OpenFile *executable, char **argv)
+AddrSpace::AddrSpace(OpenFile *executable, char **argv, Thread *t)
 {
     NoffHeader noffH;
     unsigned int i, size;
 
     args = argv;
+    t->space = this;
+    asid = t->pid;
+
+    // Open swap storage
+    char name[50] = "SWAP.12345";
+    sprintf(name, "SWAP.%d", asid);
+    fileSystem->Create(name, numPages * PageSize);
+    swap = fileSystem->Open(name);
 
     executable->ReadAt((char *)&noffH, sizeof(noffH), 0);
     if ((noffH.noffMagic != NOFFMAGIC) &&
@@ -78,12 +86,14 @@ AddrSpace::AddrSpace(OpenFile *executable, char **argv)
     numPages = divRoundUp(size, PageSize);
     size = numPages * PageSize;
 
+#ifndef VM
     ASSERT(numPages <= NumPhysPages);		// check we're not trying
 						// to run anything too big --
 						// at least until we have
 						// virtual memory
 
     ASSERT((int)numPages <= usedPages->NumClear());
+#endif
 
     DEBUG('a', "Initializing address space, num pages %d, size %d\n",
 					numPages, size);
@@ -91,20 +101,22 @@ AddrSpace::AddrSpace(OpenFile *executable, char **argv)
     pageTable = new TranslationEntry[numPages];
     for (i = 0; i < numPages; i++) {
 	pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
-	pageTable[i].physicalPage = usedPages->Find();
-	ASSERT(pageTable[i].physicalPage != -1);
 	pageTable[i].valid = true;
 	pageTable[i].use = false;
 	pageTable[i].dirty = false;
 	pageTable[i].readOnly = false;  // if the code segment was entirely on
 					// a separate page, we could set its
 					// pages to be read-only
+#ifdef VM
+	pageTable[i].physicalPage = coreMap->Find();
+	bzero(&machine->mainMemory[pageTable[i].physicalPage * PageSize], PageSize);
+	coreMap->Map(pageTable[i].physicalPage, i, this);
+#else
+	pageTable[i].physicalPage = usedPages->Find();
+	ASSERT(pageTable[i].physicalPage != -1);
+	bzero(&machine->mainMemory[pageTable[i].physicalPage * PageSize], PageSize);
+#endif
     }
-
-// zero out the entire address space, to zero the unitialized data segment
-// and the stack segment
-    for (i = 0; i < numPages; i++)
-        bzero(&machine->mainMemory[pageTable[i].physicalPage * PageSize], PageSize);
 
 // then, copy in the code and data segments into memory
     if (noffH.code.size > 0) {
@@ -112,9 +124,12 @@ AddrSpace::AddrSpace(OpenFile *executable, char **argv)
 			noffH.code.virtualAddr, noffH.code.size);
 
         for (int bytes = 0; bytes < noffH.code.size; bytes++) {
-			int vaddr = noffH.code.virtualAddr + bytes;
+            int vaddr = noffH.code.virtualAddr + bytes;
             int vpage = vaddr / PageSize;
             int voffset = vaddr % PageSize;
+#ifdef VM
+            ReloadPage(vpage);
+#endif
             int paddr = pageTable[vpage].physicalPage * PageSize + voffset;
             executable->ReadAt(&(machine->mainMemory[paddr]), 1,
                 noffH.code.inFileAddr + bytes);
@@ -126,9 +141,12 @@ AddrSpace::AddrSpace(OpenFile *executable, char **argv)
 			noffH.initData.virtualAddr, noffH.initData.size);
 
         for (int bytes = 0; bytes < noffH.initData.size; bytes++) {
-			int vaddr = noffH.initData.virtualAddr + bytes;
+            int vaddr = noffH.initData.virtualAddr + bytes;
             int vpage = vaddr / PageSize;
             int voffset = vaddr % PageSize;
+#ifdef VM
+            ReloadPage(vpage);
+#endif
             int paddr = pageTable[vpage].physicalPage * PageSize + voffset;
             executable->ReadAt(&(machine->mainMemory[paddr]), 1,
                 noffH.initData.inFileAddr + bytes);
@@ -143,8 +161,13 @@ AddrSpace::AddrSpace(OpenFile *executable, char **argv)
 
 AddrSpace::~AddrSpace()
 {
-    for (unsigned int i = 0; i < numPages; i++)
+    for (unsigned int i = 0; i < numPages; i++) {
+#ifdef VM
+        coreMap->Unmap(pageTable[i].physicalPage);
+#else
         usedPages->Clear(pageTable[i].physicalPage);
+#endif
+    }
     delete[] pageTable;
 }
 
@@ -266,8 +289,57 @@ AddrSpace::LoadPageToTLB(unsigned int vpage)
     if (vpage >= numPages)
         return false;
 
+    #ifdef VM
+    // Reload the page from swap if necessary
+    ReloadPage(vpage);
+    #endif
+
     machine->tlb[nextTLBIndex++] = pageTable[vpage];
     nextTLBIndex %= TLBSize;
 
     return true;
 }
+
+#ifdef VM
+void
+AddrSpace::EvictPage(unsigned int vpage)
+{
+    ASSERT(pageTable[vpage].valid == true);
+    int phys = pageTable[vpage].physicalPage;
+    int paddr = phys * PageSize;
+    int vaddr = vpage * PageSize;
+
+    DEBUG('v', "Evicting page %d asid %d (phys %d)\n", vpage, asid, phys);
+    swap->WriteAt(&(machine->mainMemory[paddr]), PageSize, vaddr);
+    pageTable[vpage].valid = false;
+    coreMap->Unmap(phys);
+
+    // Invalidate any potential TLB entry involving this page
+    for (int i = 0; i < TLBSize; i++) {
+        if (!machine->tlb[i].valid)
+            continue;
+        if (machine->tlb[i].physicalPage == pageTable[vpage].physicalPage) {
+            machine->tlb[i].valid = false;
+            break;
+        }
+    }
+}
+
+void
+AddrSpace::ReloadPage(unsigned int vpage)
+{
+    // Do not reload pages in memory
+    if (pageTable[vpage].valid)
+        return;
+
+    int phys = coreMap->Find();
+    int paddr = phys * PageSize;
+    int vaddr = vpage * PageSize;
+
+    DEBUG('v', "Reloading page %d asid %d (phys %d)\n", vpage, asid, phys);
+    swap->ReadAt(&(machine->mainMemory[paddr]), PageSize, vaddr);
+    pageTable[vpage].physicalPage = phys;
+    pageTable[vpage].valid = true;
+    coreMap->Map(phys, vpage, this);
+}
+#endif

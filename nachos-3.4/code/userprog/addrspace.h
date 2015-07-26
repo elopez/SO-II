@@ -16,11 +16,13 @@
 #include "copyright.h"
 #include "filesys.h"
 
+class Thread;
+
 #define UserStackSize		1024 	// increase this as necessary!
 
 class AddrSpace {
   public:
-    AddrSpace(OpenFile *executable, char **args = NULL);	// Create an address space,
+    AddrSpace(OpenFile *executable, char **args = NULL, Thread *t = NULL);	// Create an address space,
 					// initializing it with the program
 					// stored in the file "executable"
     ~AddrSpace();			// De-allocate an address space
@@ -34,6 +36,10 @@ class AddrSpace {
     void RestoreState();		// info on a context switch
 
     bool LoadPageToTLB(unsigned int vpage);
+    #ifdef VM
+    void EvictPage(unsigned int vpage);
+    void ReloadPage(unsigned int vpage);
+    #endif
 
   private:
     TranslationEntry *pageTable;	// Assume linear page table translation
@@ -43,6 +49,8 @@ class AddrSpace {
     char **args;			// Arguments for the new process, to be
 					// allocated in the fresh stack
     int nextTLBIndex;
+    int asid;
+    OpenFile *swap;
 };
 
 #endif // ADDRSPACE_H
