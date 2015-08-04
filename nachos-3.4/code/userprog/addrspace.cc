@@ -67,11 +67,13 @@ AddrSpace::AddrSpace(OpenFile *executable, char **argv, Thread *t)
     t->space = this;
     asid = t->pid;
 
+#ifdef VM
     // Open swap storage
     char name[50] = "SWAP.12345";
     sprintf(name, "SWAP.%d", asid);
     fileSystem->Create(name, numPages * PageSize);
     swap = fileSystem->Open(name);
+#endif
 
     executable->ReadAt((char *)&noffH, sizeof(noffH), 0);
     if ((noffH.noffMagic != NOFFMAGIC) &&
@@ -103,7 +105,7 @@ AddrSpace::AddrSpace(OpenFile *executable, char **argv, Thread *t)
 	pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
 	pageTable[i].valid = true;
 	pageTable[i].use = false;
-	pageTable[i].dirty = false;
+	pageTable[i].dirty = true;
 	pageTable[i].readOnly = false;  // if the code segment was entirely on
 					// a separate page, we could set its
 					// pages to be read-only
@@ -133,6 +135,11 @@ AddrSpace::AddrSpace(OpenFile *executable, char **argv, Thread *t)
             int paddr = pageTable[vpage].physicalPage * PageSize + voffset;
             executable->ReadAt(&(machine->mainMemory[paddr]), 1,
                 noffH.code.inFileAddr + bytes);
+#ifdef VM
+            // The page must not be swapped while writing
+            ASSERT(pageTable[vpage].valid);
+            pageTable[vpage].dirty = true;
+#endif
         }
     }
 
@@ -150,6 +157,11 @@ AddrSpace::AddrSpace(OpenFile *executable, char **argv, Thread *t)
             int paddr = pageTable[vpage].physicalPage * PageSize + voffset;
             executable->ReadAt(&(machine->mainMemory[paddr]), 1,
                 noffH.initData.inFileAddr + bytes);
+#ifdef VM
+            // The page must not be swapped while writing
+            ASSERT(pageTable[vpage].valid);
+            pageTable[vpage].dirty = true;
+#endif
         }
     }
 }
@@ -163,12 +175,14 @@ AddrSpace::~AddrSpace()
 {
     for (unsigned int i = 0; i < numPages; i++) {
 #ifdef VM
-        coreMap->Unmap(pageTable[i].physicalPage);
+        if (pageTable[i].valid)
+            coreMap->Unmap(pageTable[i].physicalPage);
 #else
         usedPages->Clear(pageTable[i].physicalPage);
 #endif
     }
     delete[] pageTable;
+    delete swap;
 }
 
 //----------------------------------------------------------------------
@@ -250,6 +264,16 @@ AddrSpace::SetArguments()
     delete[] args;
 }
 
+void AddrSpace::StoreTLBFlags(unsigned int i)
+{
+    if (!machine->tlb[i].valid)
+        return;
+
+    int virt = machine->tlb[i].virtualPage;
+    pageTable[virt].use = machine->tlb[i].use;
+    pageTable[virt].dirty |= machine->tlb[i].dirty;
+}
+
 //----------------------------------------------------------------------
 // AddrSpace::SaveState
 // 	On a context switch, save any machine state, specific
@@ -259,7 +283,13 @@ AddrSpace::SetArguments()
 //----------------------------------------------------------------------
 
 void AddrSpace::SaveState()
-{}
+{
+    #ifdef USE_TLB
+    // Save useful data from the TLB
+    for (int i = 0; i < TLBSize; i++)
+        StoreTLBFlags(i);
+    #endif
+}
 
 //----------------------------------------------------------------------
 // AddrSpace::RestoreState
@@ -294,6 +324,7 @@ AddrSpace::LoadPageToTLB(unsigned int vpage)
     ReloadPage(vpage);
     #endif
 
+    StoreTLBFlags(nextTLBIndex);
     machine->tlb[nextTLBIndex++] = pageTable[vpage];
     nextTLBIndex %= TLBSize;
 
@@ -305,20 +336,34 @@ void
 AddrSpace::EvictPage(unsigned int vpage)
 {
     ASSERT(pageTable[vpage].valid == true);
+
+    // Get latest dirty bits if applicable
+    if (currentThread->space == this)
+        SaveState();
+
     int phys = pageTable[vpage].physicalPage;
     int paddr = phys * PageSize;
     int vaddr = vpage * PageSize;
 
     DEBUG('v', "Evicting page %d asid %d (phys %d)\n", vpage, asid, phys);
-    swap->WriteAt(&(machine->mainMemory[paddr]), PageSize, vaddr);
+    if (pageTable[vpage].dirty) {
+        swap->WriteAt(&(machine->mainMemory[paddr]), PageSize, vaddr);
+        pageTable[vpage].dirty = false;
+        DEBUG('v', "Page was dirty, wrote to swap\n");
+    }
+
     pageTable[vpage].valid = false;
     coreMap->Unmap(phys);
+
+    // Process is not active, no need to invalidate TLB
+    if (currentThread->space != this)
+        return;
 
     // Invalidate any potential TLB entry involving this page
     for (int i = 0; i < TLBSize; i++) {
         if (!machine->tlb[i].valid)
             continue;
-        if (machine->tlb[i].physicalPage == pageTable[vpage].physicalPage) {
+        if (machine->tlb[i].virtualPage == (int)vpage) {
             machine->tlb[i].valid = false;
             break;
         }

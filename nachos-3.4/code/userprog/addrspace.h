@@ -36,6 +36,7 @@ class AddrSpace {
     void RestoreState();		// info on a context switch
 
     bool LoadPageToTLB(unsigned int vpage);
+    void StoreTLBFlags(unsigned int i);
     #ifdef VM
     void EvictPage(unsigned int vpage);
     void ReloadPage(unsigned int vpage);
