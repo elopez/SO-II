@@ -2,13 +2,14 @@
 #define COREMAP_H
 
 #include "addrspace.h"
+#include "list.h"
 
 class CoreMap {
   public:
     CoreMap();
     ~CoreMap();
 
-    void Map(unsigned int phys, unsigned int virt, AddrSpace *s);
+    void Map(unsigned int phys, TranslationEntry *virt, AddrSpace *s);
     void Unmap(unsigned int phys);
 
     int Find();
@@ -16,7 +17,11 @@ class CoreMap {
   private:
     int evictPage();
     AddrSpace **physToSpace;
-    int *physToVirt;
+    TranslationEntry **physToVirt;
+#ifdef CLOCK_EVICT
+    int clockRound(bool dirty);
+    List<TranslationEntry*> *clock;
+#endif
 };
 
 #endif

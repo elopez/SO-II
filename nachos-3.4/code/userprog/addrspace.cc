@@ -112,7 +112,7 @@ AddrSpace::AddrSpace(OpenFile *executable, char **argv, Thread *t)
 #ifdef VM
 	pageTable[i].physicalPage = coreMap->Find();
 	bzero(&machine->mainMemory[pageTable[i].physicalPage * PageSize], PageSize);
-	coreMap->Map(pageTable[i].physicalPage, i, this);
+	coreMap->Map(pageTable[i].physicalPage, &pageTable[i], this);
 #else
 	pageTable[i].physicalPage = usedPages->Find();
 	ASSERT(pageTable[i].physicalPage != -1);
@@ -385,6 +385,6 @@ AddrSpace::ReloadPage(unsigned int vpage)
     swap->ReadAt(&(machine->mainMemory[paddr]), PageSize, vaddr);
     pageTable[vpage].physicalPage = phys;
     pageTable[vpage].valid = true;
-    coreMap->Map(phys, vpage, this);
+    coreMap->Map(phys, &pageTable[vpage], this);
 }
 #endif
