@@ -297,17 +297,17 @@ List<Item>::RemoveItem(Item item)
         return false;
 
     if (first->item == item) {
-        ListNode *del = first;
-        first = first->next;
-        delete del;
+        Remove();
         return true;
     }
 
-    for (ListNode *element = first; element != NULL; element = element->next)
+    for (ListNode *element = first; element != last; element = element->next)
     {
-        if (element->next && element->next->item == item) {
+        if (element->next->item == item) {
             ListNode *del = element->next;
             element->next = element->next->next;
+            if (del == last)
+                last = element;
             delete del;
             return true;
         }
