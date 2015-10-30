@@ -158,7 +158,9 @@ handleSyscall(int type)
         Thread *thread = new Thread(name, 1);
         new AddrSpace(f, readArgvFromUsr(arg2), thread);
         thread->Fork(startProcess, NULL);
+#ifndef DEMAND_LOADING
         delete f;
+#endif
 
         result = thread->pid;
 

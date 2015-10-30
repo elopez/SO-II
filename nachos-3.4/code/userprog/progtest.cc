@@ -32,7 +32,9 @@ StartProcess(const char *filename)
     }
     space = new AddrSpace(executable, NULL, currentThread);
 
+#ifndef DEMAND_LOADING
     delete executable;			// close file
+#endif
 
     space->InitRegisters();		// set the initial register values
     space->RestoreState();		// load page table register

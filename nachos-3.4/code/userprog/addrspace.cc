@@ -60,7 +60,6 @@ SwapHeader (NoffHeader *noffH)
 
 AddrSpace::AddrSpace(OpenFile *executable, char **argv, Thread *t)
 {
-    NoffHeader noffH;
     unsigned int i, size;
 
     args = argv;
@@ -109,7 +108,10 @@ AddrSpace::AddrSpace(OpenFile *executable, char **argv, Thread *t)
 	pageTable[i].readOnly = false;  // if the code segment was entirely on
 					// a separate page, we could set its
 					// pages to be read-only
-#ifdef VM
+#if defined(VM) && defined(DEMAND_LOADING)
+	pageTable[i].physicalPage = -1;
+	pageTable[i].valid = false;
+#elif defined(VM)
 	pageTable[i].physicalPage = coreMap->Find();
 	bzero(&machine->mainMemory[pageTable[i].physicalPage * PageSize], PageSize);
 	coreMap->Map(pageTable[i].physicalPage, &pageTable[i], this);
@@ -119,6 +121,13 @@ AddrSpace::AddrSpace(OpenFile *executable, char **argv, Thread *t)
 	bzero(&machine->mainMemory[pageTable[i].physicalPage * PageSize], PageSize);
 #endif
     }
+
+#ifdef DEMAND_LOADING
+    // If we're doing on-demand loading of pages, we don't need to read them now
+    // Just keep the executable at hand
+    binary = executable;
+    return;
+#endif
 
 // then, copy in the code and data segments into memory
     if (noffH.code.size > 0) {
@@ -183,6 +192,9 @@ AddrSpace::~AddrSpace()
     }
     delete[] pageTable;
     delete swap;
+#ifdef DEMAND_LOADING
+    delete binary;
+#endif
 }
 
 //----------------------------------------------------------------------
@@ -319,6 +331,11 @@ AddrSpace::LoadPageToTLB(unsigned int vpage)
     if (vpage >= numPages)
         return false;
 
+    #if defined(VM) && defined(DEMAND_LOADING)
+    // Load the page from the binary if needed
+    LoadPage(vpage);
+    #endif
+
     #ifdef VM
     // Reload the page from swap if necessary
     ReloadPage(vpage);
@@ -330,6 +347,42 @@ AddrSpace::LoadPageToTLB(unsigned int vpage)
 
     return true;
 }
+
+#if defined(VM) && defined(DEMAND_LOADING)
+void
+AddrSpace::LoadPage(unsigned int vpage)
+{
+    // Not loaded pages are set to phys -1
+    if (pageTable[vpage].valid || pageTable[vpage].physicalPage != -1)
+	return;
+
+    int phys = coreMap->Find();
+
+    DEBUG('v', "Loading page %d asid %d (phys %d)\n", vpage, asid, phys);
+
+    for (int bytes = 0; bytes < PageSize; bytes++) {
+	int paddr = phys * PageSize + bytes;
+        int vaddr = vpage * PageSize + bytes;
+
+        if (vaddr >= noffH.code.virtualAddr &&
+            vaddr < noffH.code.virtualAddr + noffH.code.size) {
+            binary->ReadAt(&(machine->mainMemory[paddr]), 1,
+                noffH.code.inFileAddr + vaddr - noffH.code.virtualAddr);
+        } else if (vaddr >= noffH.initData.virtualAddr &&
+            vaddr < noffH.initData.virtualAddr + noffH.initData.size) {
+            binary->ReadAt(&(machine->mainMemory[paddr]), 1,
+                noffH.initData.inFileAddr + vaddr - noffH.initData.virtualAddr);
+        } else {
+            machine->mainMemory[paddr] = 0;
+        }
+    }
+
+    pageTable[vpage].physicalPage = phys;
+    pageTable[vpage].valid = true;
+    pageTable[vpage].dirty = true;
+    coreMap->Map(phys, &pageTable[vpage], this);
+}
+#endif
 
 #ifdef VM
 void

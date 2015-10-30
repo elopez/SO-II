@@ -15,6 +15,7 @@
 
 #include "copyright.h"
 #include "filesys.h"
+#include "noff.h"
 
 class Thread;
 
@@ -37,6 +38,9 @@ class AddrSpace {
 
     bool LoadPageToTLB(unsigned int vpage);
     void StoreTLBFlags(unsigned int i);
+    #if defined(VM) && defined(DEMAND_LOADING)
+    void LoadPage(unsigned int vpage);
+    #endif
     #ifdef VM
     void EvictPage(unsigned int vpage);
     void ReloadPage(unsigned int vpage);
@@ -52,6 +56,10 @@ class AddrSpace {
     int nextTLBIndex;
     int asid;
     OpenFile *swap;
+    NoffHeader noffH;
+    #if defined(VM) && defined(DEMAND_LOADING)
+    OpenFile *binary;
+    #endif
 };
 
 #endif // ADDRSPACE_H
