@@ -42,6 +42,9 @@ class Statistics {
     unsigned long long numTLBHits;
     unsigned long long numTLBMisses;
 
+    unsigned long long numSwapReads;
+    unsigned long long numSwapWrites;
+
     Statistics(); 		// initialize everything to zero
 
     void Print();		// print collected statistics

@@ -403,6 +403,7 @@ AddrSpace::EvictPage(unsigned int vpage)
         swap->WriteAt(&(machine->mainMemory[paddr]), PageSize, vaddr);
         pageTable[vpage].dirty = false;
         DEBUG('v', "Page was dirty, wrote to swap\n");
+        stats->numSwapWrites++;
     }
 
     pageTable[vpage].valid = false;
@@ -433,6 +434,8 @@ AddrSpace::ReloadPage(unsigned int vpage)
     int phys = coreMap->Find();
     int paddr = phys * PageSize;
     int vaddr = vpage * PageSize;
+
+    stats->numSwapReads++;
 
     DEBUG('v', "Reloading page %d asid %d (phys %d)\n", vpage, asid, phys);
     swap->ReadAt(&(machine->mainMemory[paddr]), PageSize, vaddr);

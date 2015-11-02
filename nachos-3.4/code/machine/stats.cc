@@ -23,6 +23,7 @@ Statistics::Statistics()
     numConsoleCharsRead = numConsoleCharsWritten = 0;
     numPageFaults = numPacketsSent = numPacketsRecvd = 0;
     numTLBHits = numTLBMisses = 0;
+    numSwapReads = numSwapWrites = 0;
 #ifdef DFS_TICKS_FIX
     numBugFix = 0;
 #endif
@@ -57,5 +58,10 @@ Statistics::Print()
     double misspct = (100.0 * numTLBMisses) / total;
     printf("TLB Hits: %llu (%.2f%%)\n", numTLBHits, hitspct);
     printf("TLB Misses: %llu (%.2f%%)\n", numTLBMisses, misspct);
+#endif
+
+#ifdef VM
+    printf("Swap reads: %llu\n", numSwapReads);
+    printf("Swap writes: %llu\n", numSwapWrites);
 #endif
 }
