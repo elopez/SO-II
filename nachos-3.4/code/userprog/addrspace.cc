@@ -182,6 +182,8 @@ AddrSpace::AddrSpace(OpenFile *executable, char **argv, Thread *t)
 
 AddrSpace::~AddrSpace()
 {
+    IntStatus oldLevel = interrupt->SetLevel(IntOff);
+
     for (unsigned int i = 0; i < numPages; i++) {
 #ifdef VM
         if (pageTable[i].valid)
@@ -195,6 +197,8 @@ AddrSpace::~AddrSpace()
 #ifdef DEMAND_LOADING
     delete binary;
 #endif
+
+    interrupt->SetLevel(oldLevel);
 }
 
 //----------------------------------------------------------------------
@@ -328,6 +332,8 @@ void AddrSpace::RestoreState()
 bool
 AddrSpace::LoadPageToTLB(unsigned int vpage)
 {
+    IntStatus oldLevel = interrupt->SetLevel(IntOff);
+
     if (vpage >= numPages)
         return false;
 
@@ -344,6 +350,8 @@ AddrSpace::LoadPageToTLB(unsigned int vpage)
     StoreTLBFlags(nextTLBIndex);
     machine->tlb[nextTLBIndex++] = pageTable[vpage];
     nextTLBIndex %= TLBSize;
+
+    interrupt->SetLevel(oldLevel);
 
     return true;
 }
