@@ -50,6 +50,8 @@ main()
 		if (*buffer == '&') {
 			bufferToArgv(buffer+1, argv);
 			Exec(buffer+1, argv);
+		} else if (!strcmp(buffer, "exit")) {
+			Exit(0);
 		} else {
 			bufferToArgv(buffer, argv);
 			newProc = Exec(buffer, argv);
