@@ -98,3 +98,4 @@ nachos-3.4/code/bin/coff2noff
 nachos
 swtch.s
 *.autodep
+SWAP.*
