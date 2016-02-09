@@ -72,7 +72,7 @@ THREAD_C =../threads/main.cc\
 	../machine/timer.cc\
 	../threads/preemptive.cc
 
-THREAD_S = ../threads/switch.s
+THREAD_S = ../threads/switch.S
 
 THREAD_O =main.o scheduler.o synch.o system.o thread.o \
 	utility.o threadtest.o locktest.o interrupt.o stats.o sysdep.o timer.o \
@@ -139,9 +139,8 @@ $(PROGRAM): $(OFILES)
 $(C_OFILES): %.o:
 	$(CC) $(CFLAGS) -c $<
 
-switch.o: ../threads/switch.s
-	$(CPP) -x assembler-with-cpp -c -P $(INCPATH) $(HOST) ../threads/switch.s > swtch.s
-#	$(AS) -o switch.o swtch.s
+switch.o: ../threads/switch.S
+	$(CC) -c -P $(INCPATH) $(HOST) ../threads/switch.S -o switch.o
 
 depend: $(CFILES) $(HFILES)
 	$(CC) $(INCPATH) $(DEFINES) $(HOST) -DCHANGED -M $(CFILES) > Makefile.autodep
