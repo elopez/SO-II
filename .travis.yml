@@ -1,6 +1,11 @@
+sudo: required
+dist: trusty
 language: cpp
 addons:
   apt:
     packages: libc6-i386
 install: make install-toolchain
-script: make -C nachos-3.4/code
+script:
+  - cd nachos-3.4/code
+  - cmake .
+  - make
