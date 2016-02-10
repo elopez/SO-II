@@ -109,3 +109,6 @@ set_target_properties(nachos-network PROPERTIES
 
 # misc tools
 add_subdirectory(bin)
+
+# tests
+add_subdirectory(test)
